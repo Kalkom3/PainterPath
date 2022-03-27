@@ -4,6 +4,7 @@
 #include <QList>
 #include <QMainWindow>
 
+class MenuBar;
 class ScribbleArea;
 class SerialCom;
 class PathPlanner;
@@ -18,44 +19,24 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
 
-protected:
+    SerialCom& getCom();
+    PathPlanner& getPlanner();
+    ScribbleArea& getPainter();
 
 private slots:
-    void open();
-    void parsePath();
-    void uploadPath();
-    void comSettings();
-    void dimensionsSettings();
+    void updateLabels();
 
 
 private:
-    void createActions();
-    void createMenus();
 
     bool saveFile(const QByteArray &fileFormat);
 
-
+    MenuBar* menu;
     QWidget* mWindow;
     ScribbleArea* paintArea;
     SerialCom* serialCom;
     PathPlanner* pathPlaner;
     Ui::MainWindow *ui;
 
-    // The menu widgets
-    QMenu *saveAsMenu;
-    QMenu *fileMenu;
-    QMenu *optionMenu;
-    QMenu *helpMenu;
-
-    // All the actions that can occur
-    QAction *openAct;
-    QList<QAction *> saveAsActs;
-    QAction *exitAct;
-    QAction *printAct;
-    QAction *parsePathAct;
-    QAction *uploadPathAct;
-    QAction *clearScreenAct;
-    QAction *comSettingsAct;
-    QAction *dimSettingsAct;
 };
 #endif

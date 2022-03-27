@@ -1,5 +1,4 @@
 #include "pathplanner.h"
-#include "dimensiondata.h"
 #include <QDebug>
 PathPlanner::PathPlanner(QObject *parent)
     : QObject{parent}

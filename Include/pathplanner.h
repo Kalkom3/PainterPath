@@ -3,7 +3,7 @@
 
 #include <QObject>
 #include <QPoint>
-class DimensionData;
+#include "dimensiondata.h"
 
 struct PathStep{
     float distance;
