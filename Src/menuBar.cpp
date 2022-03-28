@@ -9,6 +9,7 @@
 #include <QFileDialog>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QStandardPaths>
 
 MenuBar::MenuBar(MainWindow& window):
     mainWindow(window)
@@ -41,8 +42,9 @@ void MenuBar::open()
     // Get the file to open from a dialog
     // tr sets the window title to Open File
     // QDir opens the current dirctory
-    QString fileName = QFileDialog::getOpenFileName(&mainWindow,
-                               tr("Open Image "), QDir::currentPath(), tr("Image Files (*.png *.jpg *.bmp)"));
+    QString fileName = QFileDialog::getOpenFileName(&mainWindow,tr("Open Image "), 
+                               QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
+                               tr("Image Files (*.png *.jpg *.bmp)"));
 
     // If we have a file name load the image and place
     // it in the paintArea
@@ -60,6 +62,7 @@ void MenuBar::parsePath()
     if(setupProgress >=15)
     {
         mainWindow.getPlanner().parsePath();
+        setupProgress |= ESetupProgress::PathParsed;
     }
     else
     {
@@ -69,7 +72,21 @@ void MenuBar::parsePath()
 
 void MenuBar::uploadPath()
 {
-    mainWindow.getCom().createDataFrame();
+    if(setupProgress >= 31)
+    {
+        mainWindow.getCom().createDataFrame();
+    }
+    else if (setupProgress >= 15)
+    {
+        mainWindow.getPlanner().parsePath();
+        setupProgress |= ESetupProgress::PathParsed;
+        mainWindow.getCom().createDataFrame();
+    }
+    else
+    {
+        showSetupErrorMessage();
+    }
+
 }
 
 void MenuBar::comSettings()
