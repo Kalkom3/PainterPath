@@ -8,11 +8,12 @@
 
 #include <QFileDialog>
 #include <QMenuBar>
+#include <QMessageBox>
 
 MenuBar::MenuBar(MainWindow& window):
     mainWindow(window)
 {
-
+    setupProgress=0;
 }
 
 MenuBar::~MenuBar()
@@ -48,6 +49,7 @@ void MenuBar::open()
     if (!fileName.isEmpty())
     {
         paintArea.openImage(fileName);
+        setupProgress |= ESetupProgress::ImageOpened;
     }
 
     pathPlaner.getDimensions()->setImageDim(paintArea.getOriginalDimensions().first,paintArea.getOriginalDimensions().second);
@@ -55,7 +57,14 @@ void MenuBar::open()
 
 void MenuBar::parsePath()
 {
-    mainWindow.getPlanner().parsePath();
+    if(setupProgress >=15)
+    {
+        mainWindow.getPlanner().parsePath();
+    }
+    else
+    {
+        showSetupErrorMessage();
+    }
 }
 
 void MenuBar::uploadPath()
@@ -69,7 +78,14 @@ void MenuBar::comSettings()
     settingsView.setModal(true);
     settingsView.exec();
     emit labelNeedChange();
-
+    if(mainWindow.getCom().getBoudRate()>0)
+    {
+        setupProgress |= ESetupProgress::BounRateSet;
+    }
+    if(mainWindow.getCom().getSerialPort()>0)
+    {
+        setupProgress |= ESetupProgress::ComSet;
+    }
 }
 
 void MenuBar::dimensionsSettings()
@@ -78,6 +94,11 @@ void MenuBar::dimensionsSettings()
     dimensionsView.setModal(true);
     dimensionsView.exec();
     emit labelNeedChange();
+    if(mainWindow.getPlanner().getDimensions()->getRealDimensions().first>0
+            && mainWindow.getPlanner().getDimensions()->getRealDimensions().second>0)
+    {
+        setupProgress |= ESetupProgress::DimensionsSet;
+    }
 
 }
 
@@ -140,3 +161,32 @@ void MenuBar::createMenus()
     mainWindow.menuBar()->addMenu(optionMenu);
 
 }
+
+void MenuBar::showSetupErrorMessage()
+{
+    QMessageBox errorBox;
+    errorBox.setText("Program setup is not compleated!");
+    QString message;
+    if(!(setupProgress & ESetupProgress::ImageOpened))
+    {
+        message+="-Open image\n";
+    }
+    if(!(setupProgress & ESetupProgress::ComSet))
+    {
+        message+="-Set transminnion port\n";
+    }
+    if(!(setupProgress & ESetupProgress::BounRateSet))
+    {
+        message+="-Set boudRate\n";
+    }
+    if(!(setupProgress & ESetupProgress::DimensionsSet))
+    {
+        message+="-Set dimensions\n";
+    }
+    errorBox.setInformativeText(message);
+    errorBox.setIcon(QMessageBox::Critical);
+    errorBox.exec();
+
+}
+
+

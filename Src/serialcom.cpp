@@ -14,7 +14,8 @@ SerialCom::SerialCom(PathPlanner& pathPlaner):
     serialPort->setParity(QSerialPort::NoParity);
     serialPort->setFlowControl(QSerialPort::NoFlowControl);
     serialPort->setStopBits(QSerialPort::OneStop);
-
+    portNumber=-1;
+    boudRate=-1;
 }
 
 SerialCom::~SerialCom()

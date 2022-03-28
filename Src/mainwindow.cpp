@@ -20,7 +20,6 @@ MainWindow::MainWindow(QWidget *parent)
     pathPlaner = new PathPlanner;
     serialCom = new SerialCom(*pathPlaner);
     paintArea = new ScribbleArea;
-    pathPlaner->getDimensions()->setRealDim(3,3);
     menu= new MenuBar(*this);
 
     menu->connectActions();
@@ -32,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->gridLayout->addWidget(paintArea,0,0,1,4);
     setWindowTitle(tr("PathPlanner"));
     this->setWindowState(Qt::WindowMaximized);
-
+    updateLabels();
     //connects events
     connect(paintArea,SIGNAL(pointAdded(QPoint)),pathPlaner,SLOT(AddStep(QPoint)));
     connect(menu,SIGNAL(labelNeedChange()),this,SLOT(updateLabels()));

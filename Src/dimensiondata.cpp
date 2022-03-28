@@ -2,7 +2,7 @@
 
 DimensionData::DimensionData()
 {
-    realDim=QPair<float,float>(1,1);
+    realDim=QPair<float,float>(0,0);
 }
 
 void DimensionData::setRealDim(float height,float width)

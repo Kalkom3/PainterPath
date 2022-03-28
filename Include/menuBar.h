@@ -3,6 +3,15 @@
 #include <QObject>
 #include <QMenu>
 
+enum ESetupProgress{
+    ImageOpened = 0x01,
+    ComSet = 0x02,
+    BounRateSet = 0x04,
+    DimensionsSet = 0x08,
+    PathParsed = 0x10
+};
+
+
 class ScribbleArea;
 class SerialCom;
 class PathPlanner;
@@ -30,6 +39,8 @@ private slots:
 private:
     void createActions();
     void createMenus();
+    void showSetupErrorMessage();
+    uint16_t setupProgress;//checking state of following setup steps: set image, set com, set boudRate, set dimensions, parse path
 
     MainWindow& mainWindow;
     // The menu widgets
