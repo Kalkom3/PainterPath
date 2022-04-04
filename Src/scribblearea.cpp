@@ -119,6 +119,7 @@ void ScribbleArea::clearImage()
 
     startingPoint=false;
     modified = true;
+
     update();
 }
 

@@ -78,11 +78,17 @@ void PathPlanner::parseStep(int currentStep)
 
 void PathPlanner::parsePath()
 {
+    pathSteps.clear();
     Scales=dimensions->getScaleFactor();
     for(int i = 1;i<pathPoints.size();i++)
     {
         parseStep(i);
     }
+}
+
+void PathPlanner::clearPathPoints()
+{
+    pathPoints.clear();
 }
 
 PathStep PathPlanner::getStepData(int index)

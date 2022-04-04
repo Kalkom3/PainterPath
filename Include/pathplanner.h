@@ -16,11 +16,13 @@ class PathPlanner : public QObject
 public:
     explicit PathPlanner(QObject *parent = nullptr);
     void parsePath();
+
     PathStep getStepData(int index);
     int getStepDataSize();
     DimensionData* getDimensions();
 public slots:
     void AddStep(QPoint step);
+    void clearPathPoints();
 private:
     void AddPathStep(float rotation,float distance);
     float calculateLineFactor(QPoint point1,QPoint point2);

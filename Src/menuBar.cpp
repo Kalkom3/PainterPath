@@ -24,13 +24,13 @@ MenuBar::~MenuBar()
 
 void MenuBar::connectActions()
 {
-    ScribbleArea &area = mainWindow.getPainter();
     createActions();
     createMenus();
     connect(openAct, SIGNAL(triggered()), this, SLOT(open()));
     connect(parsePathAct, SIGNAL(triggered()), this, SLOT(parsePath()));
     connect(uploadPathAct, SIGNAL(triggered()), this, SLOT(uploadPath()));
-    connect(clearScreenAct, SIGNAL(triggered()), &area, SLOT(clearImage()));
+    connect(clearScreenAct, SIGNAL(triggered()), &mainWindow.getPainter(), SLOT(clearImage()));
+    connect(clearScreenAct, SIGNAL(triggered()), &mainWindow.getPlanner(), SLOT(clearPathPoints()));
     connect(comSettingsAct, SIGNAL(triggered()), this, SLOT(comSettings()));
     connect(dimSettingsAct, SIGNAL(triggered()), this, SLOT(dimensionsSettings()));
 }
@@ -122,6 +122,7 @@ void MenuBar::dimensionsSettings()
 // Define menu actions that call functions
 void MenuBar::createActions()
 {
+
     // Create the action tied to the menu
     openAct = new QAction(tr("&Open..."), &mainWindow);
     openAct->setShortcuts(QKeySequence::Open);
@@ -161,6 +162,7 @@ void MenuBar::createMenus()
     // Attach all actions to File
     fileMenu = new QMenu(tr("&File"), &mainWindow);
     fileMenu->addAction(openAct);
+    fileMenu->addAction(clearScreenAct);
     fileMenu->addSeparator();
     fileMenu->addAction(parsePathAct);
     fileMenu->addAction(uploadPathAct);
@@ -169,7 +171,6 @@ void MenuBar::createMenus()
 
     // Attach all actions to Options
     optionMenu = new QMenu(tr("&Options"), &mainWindow);
-    optionMenu->addAction(clearScreenAct);
     optionMenu->addAction(comSettingsAct);
     optionMenu->addAction(dimSettingsAct);
 
