@@ -17,42 +17,51 @@ public:
 
     // Handles all events
     bool openImage(const QString &fileName);
-    bool saveImage(const QString &fileName, const char *fileFormat);
-    void setPenColor(const QColor &newColor);
-    void setPenWidth(int newWidth);
 
-    // Has the image been modified since last save
-    bool isModified() const { return modified; }
-    QColor penColor() const { return myPenColor; }
-    int penWidth() const { return myPenWidth; }
+
     QPair<int,int>getOriginalDimensions();
     QPoint getStartingPoint();
     QImage& getImage();
-public slots:
+    QImage& getBaseImage();
 
-    // Events to handle
+public slots:
+    void markCollision(QPoint,QPoint);
     void clearImage();
-    void print();
+
 signals:
     void pointAdded(QPoint point);
+    void pointEdited(int pointNr,QPoint newPos);
+    void pointDeleted(int pointNr);
+
 protected:
     //Mouse events
     void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+    //Keyboar events
+    void keyPressEvent(QKeyEvent *event) override;
 
+    //Other events
     void paintEvent(QPaintEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
 
 private:
-    void drawLineTo(const QPoint &endPoint);
+    bool inRange(QPoint sourcePoint, QPoint pointToCheck, int range);
+    int checkHoldingPoint(QPoint mousePoint);
+    void drawLine(const QPoint &startPoint, const QPoint &endPoint);
     void drawStartingPoint(const QPoint &endPoint);
     void resizeImage(QImage *image, const QSize &newSize);
+    void refreshImage();
 
+    QVector<QPoint>pointsOnImage;
     int originalImageHeight;
     int originalImageWidth;
     bool startingPoint;
     bool scribeLock;
     bool modified;
     bool scribbling;
+    int holdingPoint;
+    bool refresh;
     int myPenWidth;
     QColor myPenColor;
     QImage image;

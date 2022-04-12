@@ -1,10 +1,9 @@
 #include "scribblearea.h"
 
 #include <QtWidgets>
-#include <QtPrintSupport/qtprintsupportglobal.h>
 #include <QPrinter>
 #include <QPrintDialog>
-
+#include <QKeyEvent>
 
 
 
@@ -13,16 +12,20 @@ ScribbleArea::ScribbleArea(QWidget *parent)
 {
     // Roots the widget to the top left even if resized
     setAttribute(Qt::WA_StaticContents);
-
+    setFocusPolicy(Qt::ClickFocus);
     // Set defaults for the monitored variables
     modified = false;
     scribbling = false;
     startingPoint=false;
     myPenWidth = 5;
-    myPenColor = Qt::red;
+    myPenColor = Qt::magenta;
 }
 
-// Used to load the image and place it in the widget
+/**
+ * @brief ScribbleArea::openImage function loading image from path
+ * @param fileName
+ * @return
+ */
 bool ScribbleArea::openImage(const QString &fileName)
 {
 
@@ -63,32 +66,6 @@ bool ScribbleArea::openImage(const QString &fileName)
     return true;
 }
 
-// Save the current image
-bool ScribbleArea::saveImage(const QString &fileName, const char *fileFormat)
-{
-    // Created to hold the image
-    QImage visibleImage = image;
-    resizeImage(&visibleImage, size());
-
-    if (visibleImage.save(fileName, fileFormat)) {
-        modified = false;
-        return true;
-    } else {
-        return false;
-    }
-}
-
-// Used to change the pen color
-void ScribbleArea::setPenColor(const QColor &newColor)
-{
-    myPenColor = newColor;
-}
-
-// Used to change the pen width
-void ScribbleArea::setPenWidth(int newWidth)
-{
-    myPenWidth = newWidth;
-}
 
 QPair<int, int> ScribbleArea::getOriginalDimensions()
 {
@@ -105,10 +82,29 @@ QImage& ScribbleArea::getImage()
     return image;
 }
 
-// Color the image area with white
+QImage &ScribbleArea::getBaseImage()
+{
+    return baseImage;
+}
+
+/**
+ * @brief ScribbleArea::markCollision function changeing color of lines with colision to red
+ * @param p1
+ * @param p2
+ */
+void ScribbleArea::markCollision(QPoint p1, QPoint p2)
+{
+    myPenColor=Qt::red;
+    drawLine(p1,p2);
+    myPenColor=Qt::magenta;
+}
+
+/**
+ * @brief ScribbleArea::clearImage function clearing drawing area
+ */
 void ScribbleArea::clearImage()
 {
-    if(baseImage.isNull())
+    if(!baseImage.isNull())
     {
        image=baseImage;
     }
@@ -116,37 +112,93 @@ void ScribbleArea::clearImage()
     {
         image.fill(qRgb(255, 255, 255));
     }
-
+    pointsOnImage.clear();
     startingPoint=false;
     modified = true;
 
     update();
 }
 
-// If a mouse button is pressed check if it was the
-// left button and if so store the current position
-// Set that we are currently drawing
+/**
+ * @brief ScribbleArea::mousePressEvent event handler for mouse pressing
+ * @param event
+ */
 void ScribbleArea::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
+        holdingPoint=-1;
         if(!startingPoint)
         {
             drawStartingPoint(event->pos());
+            pointsOnImage.push_back(event->pos());
+            emit pointAdded(event->pos());
         }
         else
         {
-            drawLineTo(event->pos());
-            lastPoint = event->pos();
-            scribbling = true;
+            if(image.pixelColor(event->pos())==Qt::blue || image.pixelColor(event->pos())==Qt::green)
+            {
+                holdingPoint = checkHoldingPoint(event->pos());
+                if(holdingPoint!=-1)
+                {
+                    refreshImage();
+                }
+            }
+            else
+            {
+                pointsOnImage.push_back(event->pos());
+                refreshImage();
+                emit pointAdded(event->pos());
+            }
         }
-        emit pointAdded(event->pos());
     }
 }
 
+/**
+ * @brief ScribbleArea::mouseMoveEvent event handler for mouse movement
+ * @param event
+ */
+void ScribbleArea::mouseMoveEvent(QMouseEvent *event)
+{
+    if(holdingPoint!=-1)
+    {
+        pointsOnImage[holdingPoint]=event->pos();
+        refreshImage();
+    }
+}
 
-// QPainter provides functions to draw on the widget
-// The QPaintEvent is sent to widgets that need to
-// update themselves
+/**
+ * @brief ScribbleArea::mouseReleaseEvent event handler for mouse release
+ * @param event
+ */
+void ScribbleArea::mouseReleaseEvent(QMouseEvent *event)
+{
+    if(holdingPoint!=-1)
+    {
+        emit pointEdited(holdingPoint,event->pos());
+    }
+    holdingPoint=-1;
+
+}
+
+/**
+ * @brief ScribbleArea::keyPressEvent event handler for keyboard pressing
+ * @param event
+ */
+void ScribbleArea::keyPressEvent(QKeyEvent *event)
+{
+
+    if(event->key()==Qt::Key_Delete && holdingPoint!=-1)
+    {
+        emit pointDeleted(holdingPoint);
+        pointsOnImage.erase(pointsOnImage.begin()+holdingPoint);
+        refreshImage();
+    }
+}
+
+/**
+ * @brief ScribbleArea::paintEvent event handler for painting on image
+ * @param event
+ */
 void ScribbleArea::paintEvent(QPaintEvent *event)
 {
     QPainter painter(this);
@@ -159,8 +211,10 @@ void ScribbleArea::paintEvent(QPaintEvent *event)
     painter.drawImage(dirtyRect, image, dirtyRect);
 }
 
-// Resize the image to slightly larger then the main window
-// to cut down on the need to resize the image
+/**
+ * @brief ScribbleArea::resizeEvent event handler for window resizeing
+ * @param event
+ */
 void ScribbleArea::resizeEvent(QResizeEvent *event)
 {
     if (width() > image.width() || height() > image.height()) {
@@ -172,45 +226,85 @@ void ScribbleArea::resizeEvent(QResizeEvent *event)
     QWidget::resizeEvent(event);
 }
 
-void ScribbleArea::drawLineTo(const QPoint &endPoint)
+/**
+ * @brief ScribbleArea::inRange function checking is first point is in specified range to second point
+ * @param sourcePoint
+ * @param pointToCheck
+ * @param range
+ * @return
+ */
+bool ScribbleArea::inRange(QPoint sourcePoint, QPoint pointToCheck, int range)
+{
+    if(abs(sourcePoint.x()-pointToCheck.x())<=range && abs(sourcePoint.y()-pointToCheck.y())<=range)
+    {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * @brief ScribbleArea::checkHoldingPoint function checking whitch point is being hold
+ * @param mousePoint
+ * @return
+ */
+int ScribbleArea::checkHoldingPoint(QPoint mousePoint)
+{
+    for(int i=0;i<pointsOnImage.size();i++)
+    {
+        if(inRange(pointsOnImage[i],mousePoint,myPenWidth+1))
+        {
+           return i;
+        }
+    }
+    return -1;
+}
+
+/**
+ * @brief ScribbleArea::drawLine function drawing line from point to point
+ * @param startPoint
+ * @param endPoint
+ */
+void ScribbleArea::drawLine(const QPoint &startPoint, const QPoint &endPoint)
 {
     QPainter painter(&image);
     bool reDrawStart=false;
-    if(image.pixelColor(lastPoint)==Qt::green)
+    if(image.pixelColor(startPoint)==Qt::green)
     {
         reDrawStart=true;
     }
     painter.setPen(QPen(myPenColor, myPenWidth, Qt::SolidLine, Qt::RoundCap,
                         Qt::RoundJoin));
-    painter.drawLine(lastPoint, endPoint);
+    painter.drawLine(startPoint, endPoint);
+
     painter.setPen(QPen(Qt::blue, myPenWidth+1, Qt::SolidLine, Qt::RoundCap,
                         Qt::RoundJoin));
+
     painter.drawPoint(endPoint);
+    painter.drawPoint(startPoint);
 
     if(reDrawStart)
     {
         QBrush brush(Qt::green);
-        painter.fillRect(QRect(QPoint(lastPoint.x()-12,lastPoint.y()-12),QPoint(lastPoint.x()+12,lastPoint.y()+12)),brush);
+        painter.fillRect(QRect(QPoint(startPoint.x()-12,startPoint.y()-12),QPoint(startPoint.x()+12,startPoint.y()+12)),brush);
     }
     else
     {
-       painter.drawPoint(lastPoint);
+       painter.drawPoint(startPoint);
     }
-    modified = true;
     int rad = (myPenWidth / 2) + 2;
 
-    update(QRect(lastPoint, endPoint).normalized()
+    update(QRect(startPoint, endPoint).normalized()
                                      .adjusted(-rad, -rad, +rad, +rad));
-
-    lastPoint = endPoint;
 }
 
+/**
+ * @brief ScribbleArea::drawStartingPoint function print starting point in first click position
+ * @param endPoint
+ */
 void ScribbleArea::drawStartingPoint(const QPoint &endPoint)
 {
     QPainter painter(&image);
     QBrush brush(Qt::green);
-
-
 
     painter.setPen(QPen(myPenColor, myPenWidth, Qt::SolidLine, Qt::RoundCap,
                         Qt::RoundJoin));
@@ -219,15 +313,16 @@ void ScribbleArea::drawStartingPoint(const QPoint &endPoint)
     modified = true;
     int rad = (myPenWidth / 2) + 2;
 
-    update(QRect(endPoint.x()-15,endPoint.y()-15,30,30).normalized()
-                                     .adjusted(-rad, -rad, +rad, +rad));
+    update(QRect(endPoint.x()-15,endPoint.y()-15,30,30).normalized().adjusted(-rad, -rad, +rad, +rad));
 
-    lastPoint = endPoint;
     startingPoint=true;
 }
 
-// When the app is resized create a new image using
-// the changes made to the image
+/**
+ * @brief ScribbleArea::resizeImage function resizeing image
+ * @param image
+ * @param newSize
+ */
 void ScribbleArea::resizeImage(QImage *image, const QSize &newSize)
 {
     // Check if we need to redraw the image
@@ -244,25 +339,18 @@ void ScribbleArea::resizeImage(QImage *image, const QSize &newSize)
     *image = newImage;
 }
 
-// Print the image
-void ScribbleArea::print()
+/**
+ * @brief ScribbleArea::refreshImage function updating changes on image
+ */
+void ScribbleArea::refreshImage()
 {
-    // Check for print dialog availability
-#if QT_CONFIG(printdialog)
-
-    // Can be used to print
-    QPrinter printer(QPrinter::HighResolution);
-
-    // Open printer dialog and print if asked
-    QPrintDialog printDialog(&printer, this);
-    if (printDialog.exec() == QDialog::Accepted) {
-        QPainter painter(&printer);
-        QRect rect = painter.viewport();
-        QSize size = image.size();
-        size.scale(rect.size(), Qt::KeepAspectRatio);
-        painter.setViewport(rect.x(), rect.y(), size.width(), size.height());
-        painter.setWindow(image.rect());
-        painter.drawImage(0, 0, image);
+    image=baseImage;
+    update();
+    drawStartingPoint(pointsOnImage[0]);
+    for(int i=0;i<pointsOnImage.size()-1;i++)
+    {
+        drawLine(pointsOnImage[i],pointsOnImage[i+1]);
     }
-#endif // QT_CONFIG(printdialog)
+    lastPoint=pointsOnImage[pointsOnImage.size()-1];
 }
+
