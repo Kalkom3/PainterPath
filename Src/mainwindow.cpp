@@ -34,6 +34,8 @@ MainWindow::MainWindow(QWidget *parent)
     updateLabels();
     //connects events
     connect(paintArea,SIGNAL(pointAdded(QPoint)),pathPlaner,SLOT(AddStep(QPoint)));
+    connect(paintArea,SIGNAL(pointEdited(int,QPoint)),pathPlaner,SLOT(EditStep(int,QPoint)));
+    connect(paintArea,SIGNAL(pointDeleted(int)),pathPlaner,SLOT(DeleteStep(int)));
     connect(menu,SIGNAL(labelNeedChange()),this,SLOT(updateLabels()));
 }
 

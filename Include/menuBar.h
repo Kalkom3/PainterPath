@@ -11,11 +11,14 @@ enum ESetupProgress{
     PathParsed = 0x10
 };
 
+enum EErrorType
+{
+    setup,
+    collision
+};
 
-class ScribbleArea;
-class SerialCom;
-class PathPlanner;
 class MainWindow;
+class ImageInterpreter;
 
 class MenuBar : public QObject
 {
@@ -39,9 +42,10 @@ private slots:
 private:
     void createActions();
     void createMenus();
-    void showSetupErrorMessage();
+    void showErrorMessage(EErrorType type);
     uint16_t setupProgress;//checking state of following setup steps: set image, set com, set boudRate, set dimensions, parse path
 
+    ImageInterpreter* imgInterpreter;
     MainWindow& mainWindow;
     // The menu widgets
     QMenu *saveAsMenu;

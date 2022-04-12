@@ -20,8 +20,11 @@ public:
     PathStep getStepData(int index);
     int getStepDataSize();
     DimensionData* getDimensions();
+    QVector<QPoint> getPathPoints();
 public slots:
     void AddStep(QPoint step);
+    void EditStep(int step,QPoint newPos);
+    void DeleteStep(int step);
     void clearPathPoints();
 private:
     void AddPathStep(float rotation,float distance);

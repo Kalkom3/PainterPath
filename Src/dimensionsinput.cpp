@@ -6,9 +6,9 @@ DimensionsInput::DimensionsInput(DimensionData& data,QWidget *parent) :
     dimData(data),
     ui(new Ui::DimensionsInput)
 {
-    //ui->HeightBox->setValue(dimData.getRealDimensions().first);
-    //ui->WidthBox->setValue(dimData.getRealDimensions().second);
     ui->setupUi(this);
+    setWindowTitle(tr("Dimensions settings"));
+
 }
 
 

@@ -5,6 +5,7 @@
 #include "comsettingsview.h"
 #include "dimensionsinput.h"
 #include "mainwindow.h"
+#include "imageinterpreter.h"
 
 #include <QFileDialog>
 #include <QMenuBar>
@@ -15,6 +16,8 @@ MenuBar::MenuBar(MainWindow& window):
     mainWindow(window)
 {
     setupProgress=0;
+    imgInterpreter = new ImageInterpreter(mainWindow.getPlanner());
+    connect(imgInterpreter,SIGNAL(collisionDetected(QPoint,QPoint)),&mainWindow.getPainter(),SLOT(markCollision(QPoint,QPoint)));
 }
 
 MenuBar::~MenuBar()
@@ -55,18 +58,24 @@ void MenuBar::open()
     }
 
     pathPlaner.getDimensions()->setImageDim(paintArea.getOriginalDimensions().first,paintArea.getOriginalDimensions().second);
+    imgInterpreter->setBaseImg(mainWindow.getPainter().getBaseImage());
 }
 
 void MenuBar::parsePath()
 {
+    if(imgInterpreter->checkPath())
+    {
+        showErrorMessage(EErrorType::collision);
+    }
     if(setupProgress >=15)
     {
+
         mainWindow.getPlanner().parsePath();
         setupProgress |= ESetupProgress::PathParsed;
     }
     else
     {
-        showSetupErrorMessage();
+        showErrorMessage(EErrorType::setup);
     }
 }
 
@@ -84,7 +93,7 @@ void MenuBar::uploadPath()
     }
     else
     {
-        showSetupErrorMessage();
+        showErrorMessage(EErrorType::setup);
     }
 
 }
@@ -180,27 +189,39 @@ void MenuBar::createMenus()
 
 }
 
-void MenuBar::showSetupErrorMessage()
+void MenuBar::showErrorMessage(EErrorType type)
 {
     QMessageBox errorBox;
-    errorBox.setText("Program setup is not compleated!");
     QString message;
-    if(!(setupProgress & ESetupProgress::ImageOpened))
-    {
-        message+="-Open image\n";
+    switch (type) {
+        case setup:
+            errorBox.setText("Program setup is not compleated!");
+
+            if(!(setupProgress & ESetupProgress::ImageOpened))
+            {
+                message+="-Open image\n";
+            }
+            if(!(setupProgress & ESetupProgress::ComSet))
+            {
+                message+="-Set transminnion port\n";
+            }
+            if(!(setupProgress & ESetupProgress::BounRateSet))
+            {
+                message+="-Set boudRate\n";
+            }
+            if(!(setupProgress & ESetupProgress::DimensionsSet))
+            {
+                message+="-Set dimensions\n";
+            }
+            break;
+
+        case collision:
+            errorBox.setText("Collision detected!");
+            message="Fix path before parsing";
+            break;
+
     }
-    if(!(setupProgress & ESetupProgress::ComSet))
-    {
-        message+="-Set transminnion port\n";
-    }
-    if(!(setupProgress & ESetupProgress::BounRateSet))
-    {
-        message+="-Set boudRate\n";
-    }
-    if(!(setupProgress & ESetupProgress::DimensionsSet))
-    {
-        message+="-Set dimensions\n";
-    }
+
     errorBox.setInformativeText(message);
     errorBox.setIcon(QMessageBox::Critical);
     errorBox.exec();
