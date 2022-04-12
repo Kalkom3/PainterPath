@@ -16,7 +16,8 @@ SOURCES += Src/comsettingsview.cpp \
            Src/pathplanner.cpp \
            Src/scribblearea.cpp \
            Src/menuBar.cpp \
-           Src/serialcom.cpp
+           Src/serialcom.cpp \
+           Src/imageinterpreter.cpp
 HEADERS += Include/comsettingsview.h \
             Include/dimensiondata.h \
             Include/dimensionsinput.h \
@@ -24,7 +25,8 @@ HEADERS += Include/comsettingsview.h \
             Include/pathplanner.h \
             Include/scribblearea.h \
             Include/menuBar.h \
-            Include/serialcom.h
+            Include/serialcom.h \
+            Include/imageinterpreter.h
 FORMS += UI/mainwindow.ui \
          UI/comsettingsview.ui \
          UI/dimensionsinput.ui
