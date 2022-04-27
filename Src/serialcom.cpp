@@ -23,11 +23,20 @@ SerialCom::~SerialCom()
     serialPort->close();
 }
 
+/**
+ * @brief SerialCom::write function sending message on serial port
+ * @param text
+ */
 void SerialCom::write(const char* text)
 {
     serialPort->write(text);
 }
 
+/**
+ * @brief SerialCom::setComParams function setting params for serial communication
+ * @param port
+ * @param boudRate
+ */
 void SerialCom::setComParams(int port, int boudRate)
 {
     portNumber=port;
@@ -42,20 +51,35 @@ void SerialCom::setComParams(int port, int boudRate)
     serialPort->open(QIODevice::ReadWrite);
 }
 
+/**
+ * @brief SerialCom::createDataFrame function creating frame from path data and sending if possible
+ */
 void SerialCom::createDataFrame()
 {
     char buffDistance[4]="";
     char buffRotation[4]="";
     int tempVal;
-    int size;
+    int size[2];
     char dataPack[16];
+    memset(dataBuffer,0,300);
+    if(pathData.getStepDataSize()<16)
+    {
+        sprintf(dataBuffer,"0%X",pathData.getStepDataSize());
+    }
+    else
+    {
+        sprintf(dataBuffer,"%X",pathData.getStepDataSize());
+    }
     for(int i=0;i<pathData.getStepDataSize();i++)
     {
+        //clearing buffer for next step
         memset(dataPack,0,16);
+        //paste distance and rotation
         tempVal=pathData.getStepData(i).distance*100;
-        size=sprintf(buffDistance,"%X",tempVal);
+        size[0]=sprintf(buffDistance,"%X",tempVal);
         tempVal=pathData.getStepData(i).rotation*100;
-        size+=sprintf(buffRotation,"%X",tempVal);
+        size[1]=sprintf(buffRotation,"%X",tempVal);
+
         qDebug()<<buffDistance<<" "<<buffRotation;
 
         if(i<16)
@@ -66,8 +90,8 @@ void SerialCom::createDataFrame()
         {
             sprintf(dataPack,"%X",i);
         }
-        dataPack[2]='0';
-        dataPack[3]=size+'0';
+        dataPack[2]=size[0]+'0';
+        dataPack[3]=size[1]+'0';
         strcat_s(dataPack,buffDistance);
         strcat_s(dataPack,buffRotation);
         strcat_s(dataBuffer,dataPack);
@@ -79,6 +103,7 @@ void SerialCom::createDataFrame()
     {
         serialPort->write(dataBuffer,strlen(dataBuffer));
     }
+    memset(dataBuffer,0,300);
 }
 
 int SerialCom::getBoudRate()
