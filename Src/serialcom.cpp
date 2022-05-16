@@ -53,23 +53,33 @@ void SerialCom::setComParams(int port, int boudRate)
 
 /**
  * @brief SerialCom::createDataFrame function creating frame from path data and sending if possible
+ *        Frame description:
+ *        1B - number of frames
+ *        ...
+ *        1B - step number
+ *        1B - step data size
+ *        xB - distance
+ *        xB - rotation
+ *        ...
  */
 void SerialCom::createDataFrame()
 {
     char buffDistance[4]="";
     char buffRotation[4]="";
     int tempVal;
+    int charCounter=0;
     int size[2];
     char dataPack[16];
     memset(dataBuffer,0,300);
-    if(pathData.getStepDataSize()<16)
-    {
-        sprintf(dataBuffer,"0%X",pathData.getStepDataSize());
-    }
-    else
-    {
-        sprintf(dataBuffer,"%X",pathData.getStepDataSize());
-    }
+//    if(pathData.getStepDataSize()<16)
+//    {
+//        sprintf(dataBuffer,"0%X",pathData.getStepDataSize());
+//    }
+//    else
+//    {
+//        sprintf(dataBuffer,"%X",pathData.getStepDataSize());
+//    }
+    sprintf(dataBuffer,"00");
     for(int i=0;i<pathData.getStepDataSize();i++)
     {
         //clearing buffer for next step
@@ -77,28 +87,39 @@ void SerialCom::createDataFrame()
         //paste distance and rotation
         tempVal=pathData.getStepData(i).distance*100;
         size[0]=sprintf(buffDistance,"%X",tempVal);
+        charCounter+=size[0];
         tempVal=pathData.getStepData(i).rotation*100;
         size[1]=sprintf(buffRotation,"%X",tempVal);
+        charCounter+=size[1];
 
-        qDebug()<<buffDistance<<" "<<buffRotation;
-
-        if(i<16)
-        {
-            sprintf(dataPack,"0%X",i);
-        }
-        else
-        {
-            sprintf(dataPack,"%X",i);
-        }
-        dataPack[2]=size[0]+'0';
-        dataPack[3]=size[1]+'0';
+//        if(i<16)
+//        {
+//            sprintf(dataPack,"0%X",i);
+//        }
+//        else
+//        {
+//            sprintf(dataPack,"%X",i);
+//        }
+        dataPack[0]=size[0]+'0';
+        dataPack[1]=size[1]+'0';
+        charCounter+=2;
         strcat_s(dataPack,buffDistance);
         strcat_s(dataPack,buffRotation);
         strcat_s(dataBuffer,dataPack);
-        qDebug()<<dataBuffer;
 
     }
-
+    char sizeChar[2];
+    if(charCounter<16)
+    {
+        sprintf(sizeChar,"0%X",charCounter);
+    }
+    else
+    {
+        sprintf(sizeChar,"%X",charCounter);
+    }
+    dataBuffer[0]=sizeChar[0];
+    dataBuffer[1]=sizeChar[1];
+    qDebug()<<dataBuffer;
     if(serialPort->isOpen())
     {
         serialPort->write(dataBuffer,strlen(dataBuffer));
